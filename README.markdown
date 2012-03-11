@@ -4,11 +4,11 @@ Trigger listens for changes to a directory, and executes a command whenever a ch
 
 ## Usage
 
+```sh
 trigger [<paths>] -- <command>
 
-e.g.
+# Examples
 
-```sh
 # Run some python tests if any files changes
 trigger . -- python -m unittest discover
 
