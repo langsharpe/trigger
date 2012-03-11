@@ -9,10 +9,10 @@ trigger [<paths>] -- <command>
 
 # Examples
 
-# Run some python tests if any files changes
+# Run some python tests when a file changes in the current directory
 trigger . -- python -m unittest discover
 
-# Show the git status when ever a file changes
+# Show the git status when a file changes in the osx directory
 # (Doesn't work on the root of a repository, as running git status fires an event)
 trigger ./osx -- git status
 ```
