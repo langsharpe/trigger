@@ -2,11 +2,12 @@
 
 Trigger listens for changes to a directory, and executes a command whenever a change occurs.
 
-# Usage
+## Usage
 
 trigger [<paths>] -- <command>
 
 e.g.
+
 ```sh
 # Run some python tests if any files changes
 trigger . -- python -m unittest discover
