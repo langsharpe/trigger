@@ -1,7 +1,6 @@
 # Trigger
 
-Trigger listens for changes to a directory, and executes a command when if happend.
-
+Trigger listens for changes to a directory, and executes a command whenever a change occurs.
 
 # Usage
 
