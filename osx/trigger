@@ -25,7 +25,7 @@ FSEVENT_PIPE=$TEMP_DIR/fsevent
 mkfifo $FSEVENT_PIPE
 
 # Write file system events into the pipe
-FSEVENT_WATCH_CMD="$(dirname $0)/bin/fsevent_watch -f classic"
+FSEVENT_WATCH_CMD="$(dirname $0)/fsevent_watch -f classic"
 $FSEVENT_WATCH_CMD $WATCH_DIRS 1> $FSEVENT_PIPE 2> /dev/null &
 
 # Register a signal handler for if (when) we are told to exit
