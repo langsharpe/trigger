@@ -46,7 +46,6 @@ $FSEVENT_WATCH_CMD $WATCH_DIRS 1> $FSEVENT_PIPE 2> /dev/null &
 cleanup()
 # Remove temporary files
 {
-	echo "CTRLC"
 	if [ -p "$FSEVENT_PIPE" ]
 	then
 		rm "$FSEVENT_PIPE"
@@ -56,6 +55,7 @@ cleanup()
 	then
 		rmdir "$TEMP_DIR"
 	fi
+
 	exit $?
 }
 trap cleanup SIGINT
