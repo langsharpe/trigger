@@ -17,6 +17,20 @@ done
 shift
 TRIGGER_CMD=$*
 
+# If the command is empty, then show a usage message and exit.
+if [ -z "$TRIGGER_CMD" ]
+then
+	echo "Trigger: Run a command whan a change occurs on the filesystem"
+	echo "Usage: trigger [<paths>] -- <command>"
+	exit
+fi
+
+# Watch the current directory if none specified
+if [ ! -z "$WATCH_DIRS" ]
+then
+	WATCH_DIRS="."
+fi
+
 # Temporary directory to put a named pipe in
 TEMP_DIR=`mktemp -d -t trigger`
 
