@@ -3,9 +3,43 @@
 # Usage:
 #       trigger [<paths>] -- <command>
 
+# Functions
+
+cleanup()
+# Remove temporary files
+{
+	if [ -p "$FSEVENT_PIPE" ]
+	then
+		rm "$FSEVENT_PIPE"
+	fi
+
+	if [ -d "$TEMP_DIR" ]
+	then
+		rmdir "$TEMP_DIR"
+	fi
+
+	exit $?
+}
+
+show_usage()
+{
+	echo "Trigger: Run a command whan a change occurs on the filesystem" >&2
+	echo "Usage: trigger [<paths>] -- <command>" >&2
+}
+
 # Parse command line.
 WATCH_DIRS=""
 TRIGGER_CMD=""
+CLEAR_SCREEN=false
+
+while getopts c O
+do	case "$O" in
+		c)		CLEAR_SCREEN=true;;
+		[?])	show_usage
+				exit 1;;
+	esac
+done
+shift $(($OPTIND - 1))
 
 # Loop through options until we reach "--", or the end
 while [ "$1" != "--" -a $# -ne 0 ]; do
@@ -20,9 +54,8 @@ TRIGGER_CMD=$*
 # If the command is empty, then show a usage message and exit.
 if [ -z "$TRIGGER_CMD" ]
 then
-	echo "Trigger: Run a command whan a change occurs on the filesystem"
-	echo "Usage: trigger [<paths>] -- <command>"
-	exit
+	show_usage
+	exit 1
 fi
 
 # Watch the current directory if none specified
@@ -43,27 +76,18 @@ FSEVENT_WATCH_CMD="$(dirname $0)/fsevent_watch -f classic"
 $FSEVENT_WATCH_CMD $WATCH_DIRS 1> $FSEVENT_PIPE 2> /dev/null &
 
 # Register a signal handler for if (when) we are told to exit
-cleanup()
-# Remove temporary files
-{
-	if [ -p "$FSEVENT_PIPE" ]
-	then
-		rm "$FSEVENT_PIPE"
-	fi
-
-	if [ -d "$TEMP_DIR" ]
-	then
-		rmdir "$TEMP_DIR"
-	fi
-
-	exit $?
-}
 trap cleanup SIGINT
 
 # Read from the pipe, and run the trigger command for every line read
-cat $FSEVENT_PIPE | while read ; do
+cat $FSEVENT_PIPE | while read
+do
+	if $CLEAR_SCREEN
+	then
+		clear
+	fi
 	$TRIGGER_CMD
 done
 
 # If we manage to get here without an interupt, then cleanup
 cleanup
+
