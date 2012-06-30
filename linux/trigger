@@ -1,0 +1,104 @@
+#!/bin/bash
+# Trigger: Run a command when a change occurs on the filesystem
+# Usage:
+#       trigger [<paths>] -- <command>
+
+# Functions
+
+check_dependencies()
+{
+	which inotifywait
+	if [ -n $? ]
+	then
+		echo "Missing dependency: inotify-tools" >&2
+		echo "Install the inotify-tools package" >&2
+	fi
+}
+
+cleanup()
+{
+	# Remove temporary files
+	if [ -p "$FSEVENT_PIPE" ]
+	then
+		rm "$FSEVENT_PIPE"
+	fi
+
+	if [ -d "$TEMP_DIR" ]
+	then
+		rmdir "$TEMP_DIR"
+	fi
+
+	exit $?
+}
+
+show_usage()
+{
+	echo "Trigger: Run a command whan a change occurs on the filesystem" >&2
+	echo "Usage: trigger [<paths>] -- <command>" >&2
+}
+
+# Parse command line.
+WATCH_DIRS=""
+TRIGGER_CMD=""
+CLEAR_SCREEN=false
+
+while getopts c O
+do	case "$O" in
+		c)		CLEAR_SCREEN=true;;
+		[?])	show_usage
+				exit 1;;
+	esac
+done
+shift $(($OPTIND - 1))
+
+# Loop through options until we reach "--", or the end
+while [ "$1" != "--" -a $# -ne 0 ]; do
+	WATCH_DIRS="$WATCH_DIRS $1"
+	shift
+done
+
+# shift out the "--" option. The rest is the command to run
+shift
+TRIGGER_CMD=$*
+
+# If the command is empty, then show a usage message and exit.
+if [ -z "$TRIGGER_CMD" ]
+then
+	show_usage
+	exit 1
+fi
+
+# Watch the current directory if none specified
+if [ ! -z "$WATCH_DIRS" ]
+then
+	WATCH_DIRS="."
+fi
+
+# Temporary directory to put a named pipe in
+TEMP_DIR=`mktemp -d -t trigger.XXXXXX`
+
+# Named pipe to read/write filesystem events
+FSEVENT_PIPE=$TEMP_DIR/fsevent
+mkfifo $FSEVENT_PIPE
+
+# Write file system events into the pipe
+FSEVENT_WATCH_CMD="inofity-wait -mrq -e modify -e move -e create -e delete"
+$FSEVENT_WATCH_CMD $WATCH_DIRS 1> $FSEVENT_PIPE 2> /dev/null &
+
+# Register a signal handler for if (when) we are told to exit
+trap cleanup SIGINT
+
+sleep 20
+# Read from the pipe, and run the trigger command for every line read
+cat $FSEVENT_PIPE | while read
+do
+	if $CLEAR_SCREEN
+	then
+		clear
+	fi
+	$TRIGGER_CMD
+done
+
+# If we manage to get here without an interupt, then cleanup
+cleanup
+
