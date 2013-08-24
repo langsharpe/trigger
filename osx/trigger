@@ -5,8 +5,8 @@
 
 # Functions
 
-cleanup()
 # Remove temporary files
+cleanup()
 {
 	if [ -p "$FSEVENT_PIPE" ]
 	then
@@ -31,10 +31,12 @@ show_usage()
 WATCH_DIRS=""
 TRIGGER_CMD=""
 CLEAR_SCREEN=false
+VERBOSE=false
 
-while getopts c O
+while getopts cv O
 do	case "$O" in
 		c)		CLEAR_SCREEN=true;;
+		v)		VERBOSE=true;;
 		[?])	show_usage
 				exit 1;;
 	esac
@@ -59,7 +61,7 @@ then
 fi
 
 # Watch the current directory if none specified
-if [ ! -z "$WATCH_DIRS" ]
+if [ -z "$WATCH_DIRS" ]
 then
 	WATCH_DIRS="."
 fi
@@ -78,6 +80,11 @@ $FSEVENT_WATCH_CMD $WATCH_DIRS 1> $FSEVENT_PIPE 2> /dev/null &
 # Register a signal handler for if (when) we are told to exit
 trap cleanup SIGINT
 
+if $VERBOSE
+then
+	echo Watching: $WATCH_DIRS
+fi
+
 # Read from the pipe, and run the trigger command for every line read
 cat $FSEVENT_PIPE | while read
 do
@@ -90,4 +97,3 @@ done
 
 # If we manage to get here without an interupt, then cleanup
 cleanup
-
