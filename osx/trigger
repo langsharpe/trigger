@@ -24,7 +24,11 @@ cleanup()
 show_usage()
 {
 	echo "Trigger: Run a command whan a change occurs on the filesystem" >&2
-	echo "Usage: trigger [<paths>] -- <command>" >&2
+	echo "Usage: trigger [OPTIONS] [<paths>] -- <command>" >&2
+   	echo "    -c        Clear Screen" >&2
+   	echo "    -f        File Level Watch Mode (sets -F flag in fsevent_watch)" >&2
+   	echo "    -d        Debug Output" >&2
+   	echo "    -v        Verbose Output" >&2
 }
 
 # Parse command line.
@@ -32,11 +36,15 @@ WATCH_DIRS=""
 TRIGGER_CMD=""
 CLEAR_SCREEN=false
 VERBOSE=false
+FILELEVEL=false
+DEBUGOUTPUT=false
 
-while getopts cv O
+while getopts cvfd O
 do	case "$O" in
 		c)		CLEAR_SCREEN=true;;
 		v)		VERBOSE=true;;
+		f)		FILELEVEL=true;;
+		d)		DEBUGOUTPUT=true;;
 		[?])	show_usage
 				exit 1;;
 	esac
@@ -64,6 +72,10 @@ fi
 if [ -z "$WATCH_DIRS" ]
 then
 	WATCH_DIRS="."
+	if $VERBOSE
+	then
+	    echo No directory specified, so watching: $WATCH_DIRS
+     fi
 fi
 
 # Temporary directory to put a named pipe in
@@ -74,7 +86,12 @@ FSEVENT_PIPE=$TEMP_DIR/fsevent
 mkfifo $FSEVENT_PIPE
 
 # Write file system events into the pipe
-FSEVENT_WATCH_CMD="$(dirname $0)/fsevent_watch -f classic"
+if $FILELEVEL
+then
+  FSEVENT_WATCH_CMD="$(dirname $0)/fsevent_watch -f classic -F"
+else
+  FSEVENT_WATCH_CMD="$(dirname $0)/fsevent_watch -f classic"
+fi
 $FSEVENT_WATCH_CMD $WATCH_DIRS 1> $FSEVENT_PIPE 2> /dev/null &
 
 # Register a signal handler for if (when) we are told to exit
@@ -84,7 +101,13 @@ if $VERBOSE
 then
 	echo Watching: $WATCH_DIRS
 fi
-
+if $DEBUGOUTPUT
+then
+    echo TEMP_DIR: $TEMP_DIR
+    echo FSEVENT_PIPE: $FSEVENT_PIPE
+    echo FSEVENT_WATCH_CMD: $FSEVENT_WATCH_CMD
+    echo TRIGGER_CMD: $TRIGGER_CMD
+fi
 # Read from the pipe, and run the trigger command for every line read
 cat $FSEVENT_PIPE | while read
 do
